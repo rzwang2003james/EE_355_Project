@@ -1,0 +1,7 @@
+# Ignore all compiled c++ files
+*.o
+*.out
+*.exe
+*.dll
+*.lib
+*.exp
