@@ -1,10 +1,11 @@
-
 #ifndef PERSON_H
 #define PERSON_H
 
 #include "date.h"
 #include "contact.h"
-#include "fstream"
+#include <fstream>
+#include <string>
+
 class Person{
     friend class Network;
 
