@@ -12,7 +12,6 @@ class Network{
         Person* tail;
         int count; 
         Person* search(Person* searchEntry);
-        Person* search(string fname, string lname);
 
     public:
         Network();
@@ -25,6 +24,7 @@ class Network{
         void showMenu();
         void loadDB(string filename);
         void saveDB(string filename);
+        Person* search(string fname, string lname);
 };
 
 #endif

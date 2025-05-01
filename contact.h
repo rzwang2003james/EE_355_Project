@@ -13,6 +13,7 @@ class Contact {
 protected:
 	string type;
 public:
+    virtual ~Contact() {}
 	virtual void print() = 0;
     virtual string get_contact(string style="full") = 0;
 	virtual void set_contact() = 0;
@@ -24,6 +25,7 @@ private:
     string email_addr;
 public:
     Email(string type, string email_addr);
+    virtual ~Email() {}
     // TODO: Complete me! - DONE
     void print();
     string get_contact(string style="full");
@@ -37,6 +39,7 @@ private:
 	string phone_num; 
 public:
     Phone(string type, string phone_number);
+    virtual ~Phone() {}
     // TODO: Complete me! - DONE
     void print();
     string get_contact(string style="full");
