@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <map>
 
 class Person{
     friend class Network;
@@ -21,6 +22,8 @@ private:
     Person* prev;
     // vector to store friends
     std::vector<Person*> myfriends;
+    // map to store additional info
+    std::map<std::string, std::string> additional_info;
 
 public: 
     Person();
@@ -34,6 +37,10 @@ public:
     bool operator!=(const Person& rhs);
     void makeFriend(Person* newFriend);
     void print_friends();
+    // Methods for additional info
+    void add_info(const std::string& key, const std::string& value);
+    std::string get_info(const std::string& key);
+    const std::map<std::string, std::string>& get_all_info() const;
 };
 
 

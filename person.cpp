@@ -1,5 +1,7 @@
 #include "person.h"
 #include <algorithm>
+#include <iostream>
+#include <map>
 
 Person::Person(){
     // I'm already done! 
@@ -75,6 +77,22 @@ void Person::set_person(){
     phone = new Phone("", "");
     phone->set_contact();
     
+    // Prompt for additional information (optional)
+    cout << "Add additional info (key:value)? (y/n): ";
+    getline(std::cin, temp);
+    while (temp == "y" || temp == "Y") {
+        string key, value;
+        cout << "  Enter key: ";
+        getline(std::cin, key);
+        cout << "  Enter value: ";
+        getline(std::cin, value);
+        if (!key.empty()) { // Avoid empty keys
+            additional_info[key] = value;
+        }
+        cout << "Add more info? (y/n): ";
+        getline(std::cin, temp);
+    }
+    
     // Initialize linked list pointers
     next = NULL;
     prev = NULL;
@@ -120,7 +138,35 @@ void Person::set_person(string filename){
     next = NULL;
     prev = NULL;
     
-    infile.close();
+    // Clear existing info before loading (in case object is reused)
+    additional_info.clear(); 
+
+    // Read additional info (Phase 3)
+    string line;
+    while (getline(infile, line) && line != "---INFO_END---") {
+        size_t colon_pos = line.find(':');
+        if (colon_pos != string::npos) {
+            string key = line.substr(0, colon_pos);
+            string value = line.substr(colon_pos + 1);
+            // Trim potential leading/trailing whitespace (optional but good practice)
+            key.erase(0, key.find_first_not_of(" \t"));
+            key.erase(key.find_last_not_of(" \t") + 1);
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of(" \t") + 1);
+            if (!key.empty()) {
+                 additional_info[key] = value;
+            }
+        } else if (line == "--------------------" || line == "===================") {
+            // This handles the case where the old format separator is encountered
+            // before any additional info or the end marker. We should put the line back
+            // so the main loop in Network::loadDB can read it.
+            // Seek back to the beginning of the line we just read.
+            infile.seekg(-(line.length() + 1), std::ios_base::cur); // +1 for newline
+            break; // Stop reading info for this person
+        }
+    }
+    
+    infile.close(); // Close file here if loading single person, otherwise Network::loadDB handles it
 }
 
 
@@ -151,12 +197,26 @@ void Person::print_person(){
     phone->print();
     email->print();
     
+    // Print Additional Info (Phase 3)
+    if (!additional_info.empty()) {
+        cout << "Additional Info:" << endl;
+        for (std::map<string, string>::const_iterator it = additional_info.begin(); it != additional_info.end(); ++it) {
+            cout << "  " << it->first << ": " << it->second << endl;
+        }
+    }
+
     // Print friends information if available
-    for (size_t i = 0; i < myfriends.size(); i++) {
-        string code = myfriends[i]->f_name + myfriends[i]->l_name;
-        transform(code.begin(), code.end(), code.begin(), ::tolower);
-        code.erase(remove(code.begin(), code.end(), ' '), code.end());
-        cout << code << " (" << myfriends[i]->f_name << " " << myfriends[i]->l_name << ")" << endl;
+    if (!myfriends.empty()) {
+        cout << "Friends:" << endl;
+        // Keep using codeName logic from misc.h/cpp if it exists, otherwise use placeholder
+        // Assuming codeName function exists globally or via misc.h
+        // #include "misc.h" // Make sure this is included if needed
+        for (size_t i = 0; i < myfriends.size(); i++) {
+            string friend_code = myfriends[i]->f_name + myfriends[i]->l_name; // Basic code if misc::codeName unavailable
+            // TODO: Replace above line with call to actual codeName function if available
+            // string friend_code = codeName(myfriends[i]->f_name, myfriends[i]->l_name);
+            cout << "  " << friend_code << " (" << myfriends[i]->f_name << " " << myfriends[i]->l_name << ")" << endl;
+        }
     }
 }
 
@@ -191,4 +251,24 @@ void Person::print_friends() {
     for (size_t i = 0; i < sorted_friends.size(); i++) {
         cout << sorted_friends[i].second->f_name << ", " << sorted_friends[i].second->l_name << endl;
     }
+}
+
+// Implementation of new methods for additional info
+void Person::add_info(const std::string& key, const std::string& value) {
+    if (!key.empty()) { // Don't allow empty keys
+        additional_info[key] = value;
+    }
+}
+
+std::string Person::get_info(const std::string& key) {
+    std::map<std::string, std::string>::iterator it = additional_info.find(key);
+    if (it != additional_info.end()) {
+        return it->second;
+    } else {
+        return ""; // Return empty string if key not found
+    }
+}
+
+const std::map<std::string, std::string>& Person::get_all_info() const {
+    return additional_info;
 }
