@@ -1,4 +1,5 @@
 #include "person.h"
+#include <algorithm>
 
 Person::Person(){
     // I'm already done! 
@@ -138,10 +139,56 @@ bool Person::operator!=(const Person& rhs){
 }
 
 
+void Person::makeFriend(Person* newFriend) {
+    // Add the new friend to the myfriends vector
+    myfriends.push_back(newFriend);
+}
+
 void Person::print_person(){
-    // Already implemented for you! Do not change!
+    // Print basic person information
 	cout << l_name <<", " << f_name << endl;
 	birthdate->print_date("Month D, YYYY");
     phone->print();
     email->print();
+    
+    // Print friends information if available
+    for (size_t i = 0; i < myfriends.size(); i++) {
+        string code = myfriends[i]->f_name + myfriends[i]->l_name;
+        transform(code.begin(), code.end(), code.begin(), ::tolower);
+        code.erase(remove(code.begin(), code.end(), ' '), code.end());
+        cout << code << " (" << myfriends[i]->f_name << " " << myfriends[i]->l_name << ")" << endl;
+    }
+}
+
+void Person::print_friends() {
+    // Sort friends based on their code names in alphabetical order
+    vector<pair<string, Person*>> sorted_friends;
+    
+    // Create pairs of code and friend pointer for sorting
+    for (size_t i = 0; i < myfriends.size(); i++) {
+        string code = myfriends[i]->f_name + myfriends[i]->l_name;
+        transform(code.begin(), code.end(), code.begin(), ::tolower);
+        code.erase(remove(code.begin(), code.end(), ' '), code.end());
+        sorted_friends.push_back(make_pair(code, myfriends[i]));
+    }
+    
+    // Sort based on the first letter of the code, and if tied, by the second letter
+    sort(sorted_friends.begin(), sorted_friends.end(), 
+        [](const pair<string, Person*>& a, const pair<string, Person*>& b) -> bool {
+            if (a.first.empty() || b.first.empty() || a.first[0] != b.first[0]) {
+                return a.first < b.first;
+            }
+            // Sort by second letter if first letters are the same
+            if (a.first.length() > 1 && b.first.length() > 1) {
+                return a.first[1] < b.first[1];
+            }
+            return a.first < b.first;
+        });
+    
+    // Print the sorted friends
+    cout << f_name << ", " << l_name << endl;
+    cout << "--------------------------------" << endl;
+    for (size_t i = 0; i < sorted_friends.size(); i++) {
+        cout << sorted_friends[i].second->f_name << ", " << sorted_friends[i].second->l_name << endl;
+    }
 }

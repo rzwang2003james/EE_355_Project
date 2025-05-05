@@ -68,7 +68,6 @@ Person* Network::search(string fname, string lname){
 
 
 void Network::loadDB(string filename){
-    // TODO: Complete this method - DONE
     // Clear the current network
     Person* current = head;
     while (current != NULL) {
@@ -89,10 +88,15 @@ void Network::loadDB(string filename){
     string line;
     string f_name, l_name, bdate, phone_str, email_str;
     int line_count = 0;
+    vector<vector<string>> all_friend_codes;
+    vector<string> friend_codes;
     
     while (getline(infile, line)) {
         // Skip separator lines
         if (line.find("----") != string::npos) {
+            // Add friend codes for this person
+            all_friend_codes.push_back(friend_codes);
+            friend_codes.clear();
             line_count = 0;
             continue;
         }
@@ -112,18 +116,46 @@ void Network::loadDB(string filename){
             Person* newPerson = new Person(f_name, l_name, bdate, email_str, phone_str);
             push_back(newPerson);
             
-            // Reset for next person
-            line_count = -1;
+            // Reset for reading friend codes
+            line_count = 5;
+        }
+        else if (line_count >= 5) {
+            // This line contains a friend code
+            friend_codes.push_back(line);
         }
         
         line_count++;
+    }
+    
+    // Add the last person's friend codes
+    if (!friend_codes.empty()) {
+        all_friend_codes.push_back(friend_codes);
+    }
+    
+    // Now set up friendships
+    Person* p = head;
+    int person_idx = 0;
+    while (p != NULL && person_idx < all_friend_codes.size()) {
+        for (string code : all_friend_codes[person_idx]) {
+            // Find the friend with this code
+            Person* temp = head;
+            while (temp != NULL) {
+                if (codeName(temp->f_name, temp->l_name) == code) {
+                    p->makeFriend(temp);
+                    break;
+                }
+                temp = temp->next;
+            }
+        }
+        
+        p = p->next;
+        person_idx++;
     }
     
     infile.close();
 }
 
 void Network::saveDB(string filename){
-    // TODO: Complete this method - DONE
     ofstream outfile(filename.c_str());
     if (!outfile) {
         cerr << "Error: Could not open file " << filename << " for writing" << endl;
@@ -141,6 +173,12 @@ void Network::saveDB(string filename){
         // Output phone and email
         outfile << current->phone->get_contact("full") << endl;
         outfile << current->email->get_contact("full") << endl;
+        
+        // Write friend codes
+        for (size_t i = 0; i < current->myfriends.size(); i++) {
+            string code = codeName(current->myfriends[i]->f_name, current->myfriends[i]->l_name);
+            outfile << code << endl;
+        }
         
         if (current->next != NULL)
             outfile << "--------------------" << endl;
@@ -238,6 +276,8 @@ void Network::showMenu(){
         cout << "3. Add a new person \n";
         cout << "4. Remove a person \n";
         cout << "5. Print people with last name  \n";
+        cout << "6. Connect \n";
+        cout << "7. Display sorted friends \n";
         cout << "\nSelect an option ... ";
         
         if (cin >> opt) {
@@ -254,7 +294,7 @@ void Network::showMenu(){
         string fname, lname, fileName, bdate;
         cout << "\033[2J\033[1;1H";
 
-        if (opt==1){
+        if (opt == 1){
             // TODO: Complete me! - DONE
             cout << "Saving network database \n";
             cout << "Enter the name of the save file: ";
@@ -265,7 +305,7 @@ void Network::showMenu(){
             saveDB(fileName);
             cout << "Network saved in " << fileName << endl;
         }
-        else if (opt==2){
+        else if (opt == 2){
             // TODO: Complete me! - DONE
             cout << "Loading network database \n";
             // TODO: print all the files in this same directory that have "networkDB.txt" format
@@ -330,7 +370,7 @@ void Network::showMenu(){
             else
                 cout << "Person not found! \n";
         }
-        else if (opt==5){
+        else if (opt == 5){
             // TODO: Complete me! - DONE
             // print the people with the given last name
             // if not found: cout << "Person not found! \n";
@@ -352,7 +392,72 @@ void Network::showMenu(){
             if (!found)
                 cout << "Person not found! \n";
         }
-        
+        else if (opt == 6){
+            // Connect functionality - Make friends between two people
+            cout << "Make friends" << endl;
+            
+            // Get info for first person
+            cout << "Person 1" << endl;
+            cout << "First Name: ";
+            getline(cin, fname);
+            cout << "Last Name: ";
+            getline(cin, lname);
+            
+            // Search for first person
+            Person* person1 = search(fname, lname);
+            if (person1 == NULL) {
+                cout << "Person not found" << endl;
+            } else {
+                // Get info for second person
+                cout << "Person 2" << endl;
+                cout << "First Name: ";
+                getline(cin, fname);
+                cout << "Last Name: ";
+                getline(cin, lname);
+                
+                // Search for second person
+                Person* person2 = search(fname, lname);
+                if (person2 == NULL) {
+                    cout << "Person not found" << endl;
+                } else {
+                    // Print information for both people before connection
+                    cout << endl;
+                    person1->print_person();
+                    cout << endl;
+                    person2->print_person();
+                    
+                    // Make them friends with each other
+                    person1->makeFriend(person2);
+                    person2->makeFriend(person1);
+                    
+                    cout << "\nConnection successful!" << endl;
+                    
+                    // Print the friends in sorted order
+                    cout << "\nShowing sorted friends list for " << person1->f_name << " " << person1->l_name << ":" << endl;
+                    person1->print_friends();
+                    
+                    cout << "\nShowing sorted friends list for " << person2->f_name << " " << person2->l_name << ":" << endl;
+                    person2->print_friends();
+                }
+            }
+        }
+        else if (opt == 7) {
+            // TODO: Complete this method!
+            // Implement the display sorted friends functionality
+            cout << "Display sorted friends" << endl;
+            cout << "Enter the first name of the person: ";
+            getline(cin, fname);
+            cout << "Enter the last name of the person: ";
+            getline(cin, lname);
+            
+            Person* person = search(fname, lname);
+            if (person == NULL) {
+                cout << "Person not found!" << endl;
+            } else {
+                cout << "\nShowing sorted friends list for " << person->f_name << " " << person->l_name << ":" << endl;
+                person->print_friends();
+            }
+        }
         else
             cout << "Nothing matched!\n";
         

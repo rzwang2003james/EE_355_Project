@@ -1,0 +1,39 @@
+Tommy
+Trojan
+1/1/2000
+(Cell) 213-740-1111
+(USC) tommy@usc.edu
+amychen
+karankapoor
+katybruin
+kurtcobain
+--------------------
+Amy
+Chen
+2/2/2001
+(Home) 213-740-2222
+(Gmail) amy@gmail.com
+tommytrojan
+karankapoor
+--------------------
+Karan
+Kapoor
+3/3/2002
+(Office) 213-740-3333
+(Yahoo) karan@yahoo.com
+tommytrojan
+amychen
+--------------------
+Katy
+Bruin
+4/4/2003
+(Cell) 213-740-4444
+(Hotmail) katy@hotmail.com
+tommytrojan
+--------------------
+Kurt
+Cobain
+5/5/2004
+(Work) 213-740-5555
+(Work) kurt@work.com
+tommytrojan
