@@ -32,12 +32,12 @@ void Date::set_date(string date_string) {
 
 void Date::print_date(string format) {
     if (format == "MM/DD/YYYY") {
-        cout << month << "/" << day << "/" << year;
+        cout << month << "/" << day << "/" << year << endl;
     } 
     else if (format == "Month D, YYYY") {
         string month_names[] = {"January", "February", "March", "April", "May", "June", 
                                "July", "August", "September", "October", "November", "December"};
-        cout << month_names[month-1] << " " << day << ", " << year;
+        cout << month_names[month-1] << " " << day << ", " << year << endl;
     }
 }
 
