@@ -1,17 +1,6 @@
 # TrojanBook - Contact Management System
 
-## Overview
-TrojanBook is a contact management system that resembles a simple social network. The project is implemented in C++ and includes features for managing contacts, creating connections between people, and storing/retrieving data.
-
-## Project Phases
-
-### Phase 1 Features
-- **Contact Management**: Ability to add, remove, and search for contacts
-- **Data Storage**: Load and save contact data from/to files
-- **Object-Oriented Design**: Implementation of classes for Date, Contact (Email, Phone), Person, and Network
-- **User Interface**: Interactive menu system for managing the network
-
-### Phase 2 Enhancements
+## Phase 2 Enhancements
 - **Friend Connections**: Added ability to connect people as friends
 - **Friend Display**: Enhanced person display to show their connections
 - **Sorted Friend List**: Implementation of a function to display friends in alphabetical order

@@ -83,7 +83,13 @@ make test_network
 
 ### 2. Run C++ Tool (Standalone Test - Optional)
 
-You can test the command-line tool directly:
+You can access the network Menu by directy running:
+
+```bash
+./test_network.o
+```
+
+Or you can test the command-line tool individually:
 
 ```bash
 # List all people
@@ -102,7 +108,7 @@ You can test the command-line tool directly:
 ./test_network.o --remove newperson
 ```
 
-### 3. Run Python Recommendation Script (Standalone Test)
+### 3. Run Python Recommendation Script (Standalone Test - Optional)
 
 Make sure you have Python 3 installed.
 
