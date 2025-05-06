@@ -497,3 +497,108 @@ void Network::showMenu(){
     }
 }
 
+// Add the implementation for searchByCodeName
+Person* Network::searchByCodeName(string codeName) {
+    Person* current = head;
+    while (current != NULL) {
+        if (::codeName(current->f_name, current->l_name) == codeName) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL; 
+}
+
+// Implementation for printAllSummaries
+void Network::printAllSummaries() {
+    Person* current = head;
+    while(current != nullptr) {
+        cout << codeName(current->f_name, current->l_name) << ":"
+             << current->f_name << ":" 
+             << current->l_name << endl;
+        current = current->next;
+    }
+}
+
+// Implementation for removeByCodeName
+bool Network::removeByCodeName(string codeName) {
+    Person* target = searchByCodeName(codeName);
+    if (!target) {
+        return false; // Person not found
+    }
+
+    // Step 1: Remove target from all other people's friend lists
+    Person* current = head;
+    while (current != nullptr) {
+        if (current != target) { // Don't try to remove from self
+             // Iterate through current person's friends
+             vector<Person*>::iterator it = current->myfriends.begin();
+             while (it != current->myfriends.end()) {
+                 if (*it == target) {
+                     it = current->myfriends.erase(it); // Erase and update iterator
+                 } else {
+                     ++it;
+                 }
+             }
+        }
+        current = current->next;
+    }
+
+    // Step 2: Unlink target from the doubly linked list
+    if (target->prev) {
+        target->prev->next = target->next;
+    } else {
+        head = target->next; // Target was head
+    }
+    if (target->next) {
+        target->next->prev = target->prev;
+    } else {
+        tail = target->prev; // Target was tail
+    }
+
+    // Step 3: Delete the target object
+    delete target;
+    count--;
+    return true;
+}
+
+// Implementation for the public printPersonDetailsParsable method
+void Network::printPersonDetailsParsable(string codeName) {
+    Person* p = searchByCodeName(codeName);
+    if (p) {
+        print_details_parsable_helper(p);
+    } else {
+        // Error handled by caller in main, maybe print info here?
+        // cerr << "INFO: Person with codename '" << codeName << "' not found." << endl;
+         // No output needed here, main handles not found.
+    }
+}
+
+// Implementation for the private print_details_parsable_helper method
+// (Moved from test_network.cpp)
+void Network::print_details_parsable_helper(Person* p) {
+     if (!p) return;
+     // Access private members directly because Network is a friend
+    cout << "fname:" << p->f_name << endl;
+    cout << "lname:" << p->l_name << endl;
+    cout << "bdate:" << p->birthdate->get_date("MM/DD/YYYY") << endl;
+    if (p->phone) cout << "phone:" << p->phone->get_contact("full") << endl; 
+    else cout << "phone:" << endl;
+    if (p->email) cout << "email:" << p->email->get_contact("full") << endl;
+    else cout << "email:" << endl;
+
+    const map<string, string>& info = p->get_all_info(); // Use public getter for info map
+    for (map<string, string>::const_iterator it = info.begin(); it != info.end(); ++it) {
+        cout << "info_" << it->first << ":" << it->second << endl;
+    }
+
+    // Access private myfriends vector directly
+    for (size_t i = 0; i < p->myfriends.size(); ++i) {
+        if (p->myfriends[i]) { 
+           // Access friend's private names directly
+           cout << "friend:" << ::codeName(p->myfriends[i]->f_name, p->myfriends[i]->l_name) << endl;
+        }
+    }
+    cout << "---DETAILS_END---" << endl;
+}
+

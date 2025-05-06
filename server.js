@@ -2,181 +2,106 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const { exec } = require('child_process');
+const util = require('util');
 
 const app = express();
 app.use(express.json()); // Middleware to parse JSON bodies
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'networkDB.txt');
+const CPP_EXECUTABLE = path.join(__dirname, 'test_network.o');
 const PYTHON_SCRIPT = path.join(__dirname, 'recommendations.py');
 
-// --- Data Parsing/Saving Logic ---
+// Promisify exec for cleaner async/await usage
+const execPromise = util.promisify(exec);
 
-function codeNameJS(fName, lName) {
-    const fnameLower = fName ? fName.toLowerCase().replace(/\s/g, '') : '';
-    const lnameLower = lName ? lName.toLowerCase().replace(/\s/g, '') : '';
-    return fnameLower + lnameLower;
-}
-
-async function parseNetworkFile(filename) {
-    const people = {};
+// --- C++ Interaction Helper ---
+async function runCppTool(args) {
+    const command = `"${CPP_EXECUTABLE}" ${args.join(' ')}`;
+    console.log('Executing C++ command:', command); // Log the command being run
     try {
-        const data = await fs.readFile(filename, 'utf8');
-        const lines = data.split(/\r?\n/); // Split by newline
-
-        let currentPerson = null;
-        let readingState = 'fname'; // fname, lname, bdate, phone, email, info, friends, separator
-        let i = 0;
-
-        while (i < lines.length) {
-            const line = lines[i].trim();
-            i++;
-
-            // Skip empty lines, except potentially within multi-line values if we supported them
-            if (!line && readingState !== 'info' && readingState !== 'friends') continue;
-            // Handle edge case of completely empty file or just separators
-            if (!line && i === lines.length) break;
-
-            if (readingState === 'fname') {
-                if (!line || line === '--------------------') continue; // Skip separators at start
-                currentPerson = { fname: line, additional_info: {}, friends: [] };
-                readingState = 'lname';
-            } else if (readingState === 'lname') {
-                currentPerson.lname = line;
-                currentPerson.codeName = codeNameJS(currentPerson.fname, currentPerson.lname);
-                readingState = 'bdate';
-            } else if (readingState === 'bdate') {
-                currentPerson.bdate = line;
-                readingState = 'phone';
-            } else if (readingState === 'phone') {
-                currentPerson.phone = line;
-                readingState = 'email';
-            } else if (readingState === 'email') {
-                currentPerson.email = line;
-                readingState = 'info';
-            } else if (readingState === 'info') {
-                if (line === '---INFO_END---') {
-                    readingState = 'friends';
-                } else if (line.includes(':')) {
-                    const [key, ...valueParts] = line.split(':');
-                    const value = valueParts.join(':');
-                    if (key.trim()) {
-                       currentPerson.additional_info[key.trim()] = value.trim();
-                    }
-                } else if (line === '--------------------') {
-                    // Separator encountered before INFO_END - error or legacy?
-                    // Assuming end of person if separator found here.
-                    if (currentPerson && currentPerson.codeName) {
-                        people[currentPerson.codeName] = currentPerson;
-                    }
-                    currentPerson = null;
-                    readingState = 'fname';
-                } else if (line) { // Treat non-empty, non-keyed line as potential friend code (legacy?)
-                     currentPerson.friends.push(line);
-                     readingState = 'friends'; // Jump to friend state
-                }
-                // Allow empty lines within info block?\ Current logic skips them.
-            } else if (readingState === 'friends') {
-                if (line === '--------------------') {
-                    if (currentPerson && currentPerson.codeName) {
-                        people[currentPerson.codeName] = currentPerson;
-                    }
-                    currentPerson = null;
-                    readingState = 'fname';
-                } else if (line) { // Only add non-empty lines as friend codes
-                    currentPerson.friends.push(line);
-                }
+        const { stdout, stderr } = await execPromise(command);
+        if (stderr) {
+            // Treat C++ stderr output as potential operational errors (like 'not found') or warnings
+            console.warn(`C++ stderr: ${stderr.trim()}`);
+            // Decide if stderr always means failure. For now, check for specific error markers.
+            if (stderr.includes('ERROR:')) {
+                throw new Error(`C++ Error: ${stderr.trim()}`);
             }
         }
-
-        // Add the last person if file doesn't end with separator
-        if (currentPerson && currentPerson.codeName && !(currentPerson.codeName in people)) {
-            people[currentPerson.codeName] = currentPerson;
-        }
-
-    } catch (err) {
-        if (err.code === 'ENOENT') {
-            // File not found is okay, means an empty network
-            console.log(`Database file '${filename}' not found. Starting fresh.`);
-            return {}; // Return empty object, not null
-        } else {
-            console.error(`Error parsing file '${filename}':`, err);
-            return null; // Indicate a real parsing error
-        }
-    }
-    return people;
-}
-
-async function saveNetworkFile(filename, peopleData) {
-    let fileContent = '';
-    const personCodes = Object.keys(peopleData);
-
-    personCodes.forEach((code, index) => {
-        const person = peopleData[code];
-        fileContent += `${person.fname || ''}\n`;
-        fileContent += `${person.lname || ''}\n`;
-        fileContent += `${person.bdate || ''}\n`;
-        fileContent += `${person.phone || ''}\n`;
-        fileContent += `${person.email || ''}\n`;
-
-        // Write Additional Info
-        if (person.additional_info) {
-            for (const [key, value] of Object.entries(person.additional_info)) {
-                fileContent += `${key}:${value}\n`;
-            }
-        }
-        fileContent += `---INFO_END---\n`;
-
-        // Write friend codes
-        if (person.friends) {
-            person.friends.forEach(friendCode => {
-                fileContent += `${friendCode}\n`;
-            });
-        }
-
-        // Separator
-        if (index < personCodes.length - 1) {
-            fileContent += `--------------------\n`;
-        }
-    });
-
-    try {
-        await fs.writeFile(filename, fileContent, 'utf8');
-        return true;
-    } catch (err) {
-        console.error(`Error writing file '${filename}':`, err);
-        return false;
+        console.log('C++ stdout:', stdout.trim());
+        return { success: true, data: stdout.trim(), stderr: stderr.trim() };
+    } catch (error) {
+        // This catches errors from exec itself (e.g., command not found) or errors thrown above
+        console.error(`Error executing C++ command: ${command}`, error);
+        // Extract a cleaner message if possible
+        const message = error.stderr || error.stdout || error.message;
+        // Ensure we throw a standard error object
+        const err = new Error(`Failed to execute C++ tool: ${message.trim()}`);
+        err.originalError = error; // Keep original error context if needed
+        throw err; 
     }
 }
 
 // --- API Endpoints ---
 
-// GET /api/people (Existing)
+// GET /api/people (List all people summaries)
 app.get('/api/people', async (req, res) => {
-    const peopleData = await parseNetworkFile(DB_FILE);
-    if (peopleData !== null) {
-        const peopleList = Object.values(peopleData).map(p => ({
-            fname: p.fname,
-            lname: p.lname,
-            codeName: p.codeName
-        }));
+    try {
+        const result = await runCppTool(['--get-all']);
+        const peopleList = result.data
+            .split(/\r?\n/)
+            .filter(line => line.trim() !== '')
+            .map(line => {
+                const parts = line.split(':');
+                return { codeName: parts[0], fname: parts[1], lname: parts[2] };
+            });
         res.json(peopleList);
-    } else {
-        res.status(500).json({ error: 'Failed to load network data' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get people list', details: error.message });
     }
 });
 
-// GET /api/people/:codename (Existing)
+// GET /api/people/:codename (Get person details)
 app.get('/api/people/:codename', async (req, res) => {
-    const peopleData = await parseNetworkFile(DB_FILE);
     const codename = req.params.codename;
-    if (peopleData !== null) {
-        if (peopleData[codename]) {
-            res.json(peopleData[codename]);
-        } else {
-            res.status(404).json({ error: `Person with codeName '${codename}' not found` });
+    // Basic validation for codename format if needed
+    if (!codename || codename.includes(' ') || codename.includes('..')) { 
+        return res.status(400).json({ error: 'Invalid codename format' });
+    }
+    try {
+        const result = await runCppTool(['--get-details', codename]);
+        const lines = result.data.split(/\r?\n/);
+        const person = { codeName: codename, friends: [], additional_info: {} };
+        let infoKey = '';
+
+        for (const line of lines) {
+            if (line === '---DETAILS_END---') break;
+            const separatorPos = line.indexOf(':');
+            if (separatorPos === -1) continue; // Skip lines without a colon
+
+            const key = line.substring(0, separatorPos);
+            const value = line.substring(separatorPos + 1);
+
+            if (key === 'fname') person.fname = value;
+            else if (key === 'lname') person.lname = value;
+            else if (key === 'bdate') person.bdate = value;
+            else if (key === 'phone') person.phone = value;
+            else if (key === 'email') person.email = value;
+            else if (key === 'friend') person.friends.push(value);
+            else if (key.startsWith('info_')) {
+                infoKey = key.substring(5); // Remove 'info_' prefix
+                person.additional_info[infoKey] = value;
+            }
         }
-    } else {
-        res.status(500).json({ error: 'Failed to load network data' });
+        res.json(person);
+
+    } catch (error) {
+        // C++ tool might return error/stderr if not found, which runCppTool should catch
+        if (error.message && error.message.includes('not found')) {
+             res.status(404).json({ error: `Person with codeName '${codename}' not found`, details: error.message });
+        } else {
+             res.status(500).json({ error: 'Failed to get person details', details: error.message });
+        }
     }
 });
 
@@ -205,108 +130,96 @@ app.post('/api/people', async (req, res) => {
         return res.status(400).json({ error: 'First and last name are required.' });
     }
 
-    const peopleData = await parseNetworkFile(DB_FILE);
-    if (peopleData === null) {
-        return res.status(500).json({ error: 'Failed to load network data before adding.' });
+    const args = ['--add', '--fname', fname, '--lname', lname];
+    if (bdate) args.push('--bdate', bdate);
+    if (phone) args.push('--phone', phone);
+    if (email) args.push('--email', email);
+    if (additional_info) {
+        for (const [key, value] of Object.entries(additional_info)) {
+            if (key && value) { // Ensure key/value are not empty
+                 // Ensure key doesn't contain problematic characters for shell
+                 const safeKey = key.replace(/[:\s]/g, '_'); // Basic sanitization
+                 args.push('--info', `${safeKey}:${value}`);
+            }
+        }
     }
 
-    const newCodeName = codeNameJS(fname, lname);
-    if (peopleData[newCodeName]) {
-        return res.status(409).json({ error: `Person with codeName '${newCodeName}' already exists.` });
-    }
-
-    peopleData[newCodeName] = {
-        fname,
-        lname,
-        codeName: newCodeName,
-        bdate: bdate || '',
-        phone: phone || '',
-        email: email || '',
-        additional_info: additional_info || {},
-        friends: []
-    };
-
-    const saved = await saveNetworkFile(DB_FILE, peopleData);
-    if (saved) {
-        res.status(201).json(peopleData[newCodeName]); // Respond with the created person
-    } else {
-        res.status(500).json({ error: 'Failed to save network data after adding.' });
+    try {
+        const result = await runCppTool(args);
+        // Assuming C++ outputs "SUCCESS: Added <codename>" on stdout
+        const match = result.data.match(/SUCCESS: Added (\S+)/);
+        if (match && match[1]) {
+             // Optionally, call --get-details to return the full new person object
+             // For now, just return success and the codename
+             res.status(201).json({ message: result.data, codeName: match[1] });
+        } else {
+             throw new Error('C++ tool did not confirm addition.' + (result.stderr ? ` Stderr: ${result.stderr}`: ''));
+        }
+    } catch (error) {
+         if (error.message && error.message.includes('already exists')) {
+             res.status(409).json({ error: 'Person already exists', details: error.message });
+         } else {
+             res.status(500).json({ error: 'Failed to add person', details: error.message });
+         }
     }
 });
 
 // DELETE /api/people/:codename (Remove Person)
 app.delete('/api/people/:codename', async (req, res) => {
     const codenameToRemove = req.params.codename;
-
-    const peopleData = await parseNetworkFile(DB_FILE);
-    if (peopleData === null) {
-        return res.status(500).json({ error: 'Failed to load network data before removing.' });
+     if (!codenameToRemove || codenameToRemove.includes(' ') || codenameToRemove.includes('..')) { 
+        return res.status(400).json({ error: 'Invalid codename format' });
     }
 
-    if (!peopleData[codenameToRemove]) {
-        return res.status(404).json({ error: `Person with codeName '${codenameToRemove}' not found.` });
-    }
-
-    // Remove the person
-    delete peopleData[codenameToRemove];
-
-    // Remove the person from others' friend lists
-    for (const code in peopleData) {
-        const person = peopleData[code];
-        if (person.friends) {
-            person.friends = person.friends.filter(friendCode => friendCode !== codenameToRemove);
-        }
-    }
-
-    const saved = await saveNetworkFile(DB_FILE, peopleData);
-    if (saved) {
-        res.status(200).json({ message: `Person '${codenameToRemove}' removed successfully.` });
-    } else {
-        res.status(500).json({ error: 'Failed to save network data after removing.' });
+    try {
+        const result = await runCppTool(['--remove', codenameToRemove]);
+         if (result.data.includes('SUCCESS: Removed')) {
+             res.status(200).json({ message: `Person '${codenameToRemove}' removed successfully.` });
+         } else {
+             throw new Error('C++ tool did not confirm removal.' + (result.stderr ? ` Stderr: ${result.stderr}`: ''));
+         }
+    } catch (error) {
+         if (error.message && error.message.includes('not found')) {
+             res.status(404).json({ error: `Person '${codenameToRemove}' not found`, details: error.message });
+         } else {
+            res.status(500).json({ error: 'Failed to remove person', details: error.message });
+         }
     }
 });
 
 // POST /api/connect (Connect Friends)
 app.post('/api/connect', async (req, res) => {
     const { codeName1, codeName2 } = req.body;
-    console.log(`Connect request received: codeName1='${codeName1}', codeName2='${codeName2}'`); // Log received data
+    console.log(`Connect request received: codeName1='${codeName1}', codeName2='${codeName2}'`); 
     if (!codeName1 || !codeName2 || codeName1 === codeName2) {
         return res.status(400).json({ error: 'Two different valid codeNames are required.' });
     }
-
-    const peopleData = await parseNetworkFile(DB_FILE);
-    if (peopleData === null) {
-        return res.status(500).json({ error: 'Failed to load network data before connecting.' });
+    // Add validation? Ensure they are not empty strings etc.
+    if ( [codeName1, codeName2].some(c => !c || c.includes(' ') || c.includes('..')) ) {
+         return res.status(400).json({ error: 'Invalid codename format provided' });
     }
 
-    // Log available keys for debugging
-    console.log('Available people keys:', Object.keys(peopleData));
-
-    const person1 = peopleData[codeName1];
-    const person2 = peopleData[codeName2];
-
-    if (!person1 || !person2) {
-        console.error(`Connect Error: Person1 found? ${!!person1}. Person2 found? ${!!person2}`); // Log lookup result
-        return res.status(404).json({ error: 'One or both persons not found.' });
-    }
-
-    // Add friends bidirectionally, avoiding duplicates
-    if (!person1.friends.includes(codeName2)) {
-        person1.friends.push(codeName2);
-    }
-    if (!person2.friends.includes(codeName1)) {
-        person2.friends.push(codeName1);
-    }
-
-    const saved = await saveNetworkFile(DB_FILE, peopleData);
-    if (saved) {
-        res.status(200).json({ message: `Connection between '${codeName1}' and '${codeName2}' successful.` });
-    } else {
-        res.status(500).json({ error: 'Failed to save network data after connecting.' });
+    try {
+        const result = await runCppTool(['--connect', codeName1, codeName2]);
+        if (result.data.includes('SUCCESS: Connected') || result.data.includes('already connected')) {
+             res.status(200).json({ message: `Connection update for '${codeName1}' and '${codeName2}' processed.` , details: result.data});
+        } else {
+              throw new Error('C++ tool did not confirm connection.' + (result.stderr ? ` Stderr: ${result.stderr}`: ''));
+        }
+    } catch (error) {
+        // Specific check for 'not found' errors from C++ stderr
+        if (error.message && error.message.includes('not found')) {
+             res.status(404).json({ error: 'One or both persons not found for connection.', details: error.message });
+        } else if (error.message && error.message.includes('to themselves')) {
+             res.status(400).json({ error: 'Cannot connect a person to themselves.', details: error.message });
+        } else {
+            res.status(500).json({ error: 'Failed to connect persons', details: error.message });
+        }
     }
 });
 
 // POST /api/generate (Generate Demo Data)
+// Keep JS implementation for this, as it avoids defining complex data in C++
 app.post('/api/generate', async (req, res) => {
     const demoPeople = {
         'johndoe': {
@@ -331,11 +244,40 @@ app.post('/api/generate', async (req, res) => {
         }
     };
 
-    const saved = await saveNetworkFile(DB_FILE, demoPeople);
-    if (saved) {
-        res.status(200).json({ message: 'Demo data generated and saved successfully.' });
-    } else {
-        res.status(500).json({ error: 'Failed to save generated demo data.' });
+    // Need a temporary JS function to format this demo data into the C++ file format
+    // OR just write the file directly from JS, avoiding C++ for this specific action.
+    // Let's keep the direct write approach:
+    let fileContent = '';
+    const personCodes = Object.keys(demoPeople);
+    personCodes.forEach((code, index) => {
+        const person = demoPeople[code];
+        fileContent += `${person.fname || ''}\n`;
+        fileContent += `${person.lname || ''}\n`;
+        fileContent += `${person.bdate || ''}\n`;
+        fileContent += `${person.phone || ''}\n`;
+        fileContent += `${person.email || ''}\n`;
+        if (person.additional_info) {
+            for (const [key, value] of Object.entries(person.additional_info)) {
+                fileContent += `${key}:${value}\n`;
+            }
+        }
+        fileContent += `---INFO_END---\n`;
+        if (person.friends) {
+            person.friends.forEach(friendCode => {
+                fileContent += `${friendCode}\n`;
+            });
+        }
+        if (index < personCodes.length - 1) {
+            fileContent += `--------------------\n`;
+        }
+    });
+
+    try {
+        await fs.writeFile(DB_FILE, fileContent, 'utf8');
+        res.status(200).json({ message: 'Demo data generated and saved successfully (using JS).' });
+    } catch (err) {
+        console.error(`Error writing demo data file '${DB_FILE}':`, err);
+         res.status(500).json({ error: 'Failed to save generated demo data.', details: err.message });
     }
 });
 
@@ -345,4 +287,5 @@ app.use(express.static(path.join(__dirname, 'public')));
 // --- Server Start ---
 app.listen(PORT, () => {
     console.log(`TrojanBook Phase 3 server running at http://localhost:${PORT}`);
+    console.log(`Using C++ executable: ${CPP_EXECUTABLE}`);
 }); 

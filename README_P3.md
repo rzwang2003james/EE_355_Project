@@ -1,74 +1,70 @@
 # Phase 3: Enhancements (Extra Credit)
 
-This document outlines the features implemented for Phase 3 of the TrojanBook project. This phase focuses on extending the functionality beyond the core requirements, incorporating an expanded data model, a recommendation engine, and a web-based user interface.
+This document outlines the features implemented for Phase 3 of the TrojanBook project. This phase focuses on extending the functionality beyond the core requirements, incorporating an expanded data model, a recommendation engine, and a web-based user interface that interacts directly with compiled C++ code and a Python script for backend logic.
 
 ## Goals
 1.  **Enlarge Database (C++):** Extend the C++ data structures to store more user information (like major, college) using a flexible format and update file I/O accordingly.
-2.  **Recommendation System (Python):** Develop a Python script to analyze the C++ database file and suggest potential friend connections based on shared attributes.
-3.  **Web User Interface (Node.js):** Create a dynamic web interface using Node.js, Express, and vanilla JavaScript to visualize the network, interact with data (view, add, remove, connect), and display recommendations.
+2.  **Recommendation System (Python):** Develop a Python script to analyze the C++ database file and suggest potential friend connections based on shared attributes. This script is the *sole* source of recommendation logic.
+3.  **Web User Interface (Node.js):** Create a dynamic web interface using Node.js and Express. **The Node.js backend calls the compiled C++ executable for all core data operations (load, add, remove, connect, get details) and executes the Python script for recommendations.**
 
 ## Implementation Details
 
 This section provides a more detailed breakdown of how each component was implemented.
 
-### 1. C++ Database Enhancement
+### 1. C++ Database Enhancement & Command-Line Interface
 
-The core C++ codebase from Phase 1 and 2 was extended to handle more flexible user data.
+The core C++ codebase from Phase 1 and 2 was extended to handle more flexible user data and refactored to be controlled via command-line arguments instead of an interactive menu.
 
 -   **`Person` Class (`person.h`, `person.cpp`):**
-    -   The primary change was adding a `std::map<std::string, std::string> additional_info;` member variable. `std::map` was chosen for its efficiency in storing and retrieving arbitrary key-value pairs, allowing easy extension with new fields like "Major", "College", "City", etc., without changing the class structure.
-    -   Helper methods `add_info(key, value)`, `get_info(key)`, and `get_all_info()` were added to provide controlled access to this map.
-    -   The `set_person()` method (interactive terminal input) was updated to include an optional loop prompting the user to enter key-value pairs for additional information.
-    -   The `print_person()` method was enhanced to iterate through the `additional_info` map and print its contents if the map is not empty.
+    -   Added `std::map<std::string, std::string> additional_info;` for flexible key-value data.
+    -   Added helper methods (`add_info`, `get_info`, `get_all_info`).
+    -   **Note:** Basic data members (`f_name`, `l_name`, `birthdate`, etc.) remain private. Access from outside `Person` or `Network` requires getters (which were *not* added to maintain minimal changes) or friend access.
 -   **`Network` Class (`network.h`, `network.cpp`):**
-    -   **File Format:** The `networkDB.txt` format was extended. After the standard fields (name, bdate, phone, email), key-value pairs from `additional_info` are written, one per line, in the format `key:value`. A dedicated marker line `---INFO_END---` signifies the end of additional info and the start of the friend list (codeNames).
-    -   **`saveDB(filename)`:** This function was modified to iterate through the `additional_info` map of each `Person` object (retrieved via `get_all_info()`) and write each entry as `key:value` before writing the `---INFO_END---` marker and then the friend codeNames.
-    -   **`loadDB(filename)`:** This function's parsing logic was significantly updated. After reading the standard fields, it enters a loop reading lines until `---INFO_END---` is encountered. Inside this loop, it checks if a line contains a colon (`:`); if so, it splits the line into a key and value and stores it in the `Person`'s `additional_info` map using the `add_info` method. Lines without a colon before `---INFO_END---` are treated as potential friend codes for backward compatibility or error resilience. After `---INFO_END---`, it reads the remaining lines until the `--------------------` separator as friend codes. The friend linking logic was also improved using maps (`person_map`, `friend_codes_map`) to ensure connections are made correctly even if the file order changes.
-    -   The `codeName` function (from `misc.cpp`) remains crucial for generating unique identifiers used in friend lists and lookups.
+    -   **File Format:** Extended `networkDB.txt` format to include `key:value` pairs for additional info, terminated by `---INFO_END---` before friend codes.
+    -   **File I/O (`saveDB`, `loadDB`):** Updated to handle the new format and improved friend linking logic using maps during load.
+    -   **New Methods for Command-Line Control:**
+        -   `searchByCodeName(string codeName)`: Finds a person by their unique codeName.
+        -   `removeByCodeName(string codeName)`: Removes a person by codeName and crucially, **also removes them from the friend lists of all other people** before deleting the person object.
+        -   `printAllSummaries()`: Prints a summary (codeName:fName:lName) of all people to standard output.
+        -   `printPersonDetailsParsable(string codeName)`: Prints detailed information for a specific person to standard output in a machine-parsable format (using `key:value` lines), leveraging a private helper method (`print_details_parsable_helper`) that can access private `Person` members due to `Network` being a `friend`.
+    -   The interactive `showMenu()` method remains but is no longer used by the primary executable.
+-   **Executable (`test_network.cpp`, compiled to `test_network.o`):**
+    -   The `main` function was rewritten to parse command-line arguments (`argc`, `argv`).
+    -   It accepts commands like `--get-all`, `--get-details <codename>`, `--add --fname <fname> ...`, `--remove <codename>`, `--connect <code1> <code2>`.
+    -   Based on the command, it loads the database (`networkDB.txt`), calls the appropriate `Network` class methods, performs the action, prints results (or errors) to standard output/error, and saves the database if modifications occurred.
+    -   This executable is now called directly by the Node.js server.
 
 ### 2. Python Recommendation System
 
-A separate Python script (`recommendations.py`) was created to perform offline analysis and generate friend recommendations.
+A separate Python script (`recommendations.py`) performs offline analysis and generates friend recommendations. **This script is the only component responsible for generating recommendations.**
 
--   **Technology Choice:** Python was chosen for its strong text processing capabilities and ease of use for scripting, aligning with the project suggestions. It operates independently of the C++ runtime.
--   **Data Input:** The `parse_network_file(filename)` function reads and parses the `networkDB.txt` file generated by the C++ application. It mirrors the C++ parsing logic, extracting standard fields, additional info (key:value pairs between standard fields and `---INFO_END---`), and friend codes.
--   **Recommendation Logic (`recommend_friends` function):**
-    -   A simple content-based filtering approach is used.
-    -   **Input:** Takes the `codeName` of the target user and the parsed network data.
-    -   **Scoring:** It iterates through all other users in the network. For each potential recommendation, it calculates a score based on:
-        -   **Shared Additional Info:** Points are awarded for sharing the same keys in `additional_info` (e.g., both have a 'Major'), with a higher score if the values also match (e.g., both have 'Major': 'CSCI').
-        -   **Age Proximity:** If birthdates are valid, the age difference is calculated. A small age difference (e.g., <= 5 years) adds to the score.
-        -   **Exclusion:** The target user themselves and their existing friends are excluded from recommendations.
-    -   **Output:** Returns a list of the top N `codeName`s with the highest scores.
--   **Integration:** The script is designed to be called from the command line (e.g., `python recommendations.py <target_codename>`). The Node.js server executes this script using `child_process.exec` and captures its standard output (the list of recommended codeNames) to send back to the web UI.
+-   **Technology Choice:** Python, operating independently of the C++ runtime.
+-   **Data Input:** Parses the `networkDB.txt` file, mirroring the C++ format including `---INFO_END---`.
+-   **Recommendation Logic (`recommend_friends` function):** Uses content-based filtering, scoring potential friends based on shared `additional_info` (key/value matches) and age proximity. Excludes self and existing friends.
+-   **Integration:** The script accepts a target `codeName` via command-line argument. The Node.js server executes this script (`python recommendations.py <target_codename>`), captures its standard output (the list of recommended codeNames), and passes this list to the web UI. **The Node.js server and the frontend JavaScript do not contain any recommendation logic themselves.**
 
 ### 3. Node.js Web UI
 
-A web-based frontend and backend were created using Node.js to provide a graphical interface.
+A web-based frontend and backend using Node.js, now acting primarily as an interface layer to the C++ executable and the Python script.
 
 -   **Backend (`server.js`):**
-    -   **Framework:** Express.js was used for its simplicity in setting up routing and handling HTTP requests.
-    -   **Data Handling:** Crucially, the Node.js server *also* parses the `networkDB.txt` file directly using asynchronous file system operations (`fs.promises`). It contains its own `parseNetworkFile` and `saveNetworkFile` functions (written in JavaScript) that replicate the file format logic used by the C++ application and the Python script. This avoids needing to run the C++ executable for basic data reads/writes within the web UI.
-    -   **API Endpoints:** A RESTful API was established:
-        -   `GET /api/people`: Parses the DB file and returns a list of all people (basic info).
-        -   `GET /api/people/:codename`: Parses the DB file and returns full details for a specific person.
-        -   `POST /api/people`: Adds a new person. Takes person data in the request body, reads the current DB, adds the new person, and saves the updated DB file.
-        -   `DELETE /api/people/:codename`: Removes a person. Reads the DB, removes the specified person (and references from others' friend lists), and saves the updated DB.
-        -   `POST /api/connect`: Creates a friendship. Takes two codeNames, reads the DB, updates the `friends` arrays for both people bidirectionally, and saves the DB.
-        -   `GET /api/recommendations/:codename`: Executes the `recommendations.py` script using `child_process.exec`, passing the target codename. It captures the script's output (recommended codeNames) and sends it as a JSON response.
-        -   `POST /api/generate`: Overwrites the `networkDB.txt` file with predefined demo data using `saveNetworkFile`.
-    -   **Middleware:** `express.json()` is used to parse incoming JSON request bodies for POST requests.
+    -   **Framework:** Express.js.
+    -   **Data Handling Shift:** **Removed** the JavaScript `parseNetworkFile` and `saveNetworkFile` functions. All core data operations now rely on calling the compiled C++ executable (`test_network.o`) using `child_process.exec`.
+    -   **C++ Interaction:** Implemented a helper function (`runCppTool`) to manage executing the C++ tool with specified command-line arguments and parsing its `stdout` and `stderr`.
+    -   **API Endpoints:** The API endpoints (`/api/people`, `/api/people/:codename`, `/api/people` (POST), `/api/people/:codename` (DELETE), `/api/connect`) were refactored to:
+        1.  Construct the correct command-line arguments for `test_network.o`.
+        2.  Call `runCppTool`.
+        3.  Parse the output from the C++ tool (e.g., summary lists, detail lines, success/error messages).
+        4.  Format the results into JSON responses for the frontend.
+        5.  Handle errors reported by the C++ tool via `stderr` or exit codes.
+    -   **Recommendations Endpoint (`/api/recommendations/:codename`):** This endpoint remains unchanged in its *logic* – it still executes the `recommendations.py` script using `child_process.exec` and returns the script's output.
+    -   **Demo Data Endpoint (`/api/generate`):** This endpoint still uses JavaScript to directly write the demo `networkDB.txt` file for simplicity, avoiding the need to encode the demo data within the C++ application.
 -   **Frontend (`public/` directory):**
-    -   **Structure (`index.html`):** A standard HTML5 structure with semantic elements (`header`, `main`, `aside`, `section`). It includes areas for the contact list, detailed view, recommendations, action buttons, and hidden modal dialogs for adding/connecting users.
-    -   **Styling (`style.css`):** CSS provides the visual presentation, aiming for a clean, modern look inspired by Apple's design language (using system fonts, whitespace, defined color variables, rounded corners, subtle shadows). It includes styles for layout (Flexbox), buttons, lists, modals, forms, and basic responsiveness.
+    -   **Structure (`index.html`), Styling (`style.css`):** No changes required here.
     -   **Interactivity (`script.js`):**
-        -   Uses vanilla JavaScript (ES6+ features like `async/await`, `fetch`).
-        -   **Event-Driven:** Attaches event listeners to buttons (Add, Generate, Remove, Connect) and list items.
-        -   **API Interaction:** Uses the `fetch` API to communicate with the backend API endpoints (GET, POST, DELETE).
-        -   **DOM Manipulation:** Dynamically updates the HTML content of the people list, details view, and recommendations view based on data received from the API.
-        -   **State Management:** Maintains simple client-side state, like the `currentSelectedCodename` and a `peopleCache` (JavaScript object) to store fetched person details, reducing redundant API calls when displaying friend names or populating modals.
-        -   **Modals:** Implements functions to show/hide modal dialogs for user input (adding/connecting).
-        -   **User Feedback:** Uses `alert()` and `confirm()` for basic status messages and confirmations.
+        -   No changes required to the core logic. It continues to make `fetch` calls to the backend API endpoints.
+        -   **Crucially, it contains no logic for parsing the `networkDB.txt` file, saving data, connecting users, or generating recommendations itself.** It relies entirely on the backend API, which in turn relies on the C++ executable and the Python script.
+        -   Includes the fix for attaching event listeners correctly to the dynamically generated recommendation connect buttons.
 
 ## Running Phase 3
 
@@ -79,36 +75,40 @@ Follow these steps to compile and run the different components of Phase 3:
 Make sure you have a C++ compiler (like g++) installed.
 
 ```bash
-# Recompile the Network Test application with the Phase 3 changes
+# Compile the C++ application with the command-line interface
 make clean # Optional: Clean previous builds
 make test_network 
-# Or build all targets
-# make
+# This creates the test_network.o executable
 ```
 
-This will create the `test_network.o` executable.
+### 2. Run C++ Tool (Standalone Test - Optional)
 
-### 2. Prepare Data (Optional)
+You can test the command-line tool directly:
 
-You can use the C++ `test_network.o` application to create or modify a `networkDB.txt` file.
+```bash
+# List all people
+./test_network.o --get-all
 
-- Run `./test_network.o`.
-- Use option `3` to add new people. You will be prompted for standard information and then asked if you want to add additional info (key:value pairs).
-- Use option `6` to connect people.
-- Use option `1` to save the network to `networkDB.txt` (or another filename).
+# Get details for a specific person (replace 'johndoe')
+./test_network.o --get-details johndoe
 
-Make sure the `networkDB.txt` file is in the same directory as `server.js` and `recommendations.py` for the web UI to work correctly.
+# Add a person
+./test_network.o --add --fname New --lname Person --bdate 01/01/2000 --email new@person.com --info Major:UNDC
+
+# Connect two people (replace code names)
+./test_network.o --connect newperson johndoe
+
+# Remove a person
+./test_network.o --remove newperson
+```
 
 ### 3. Run Python Recommendation Script (Standalone Test)
 
 Make sure you have Python 3 installed.
 
 ```bash
-# Test the recommendation script directly (replace 'johndoe' with a valid codeName from your data)
+# Test the recommendation script directly (replace 'johndoe' with a valid codeName)
 python recommendations.py johndoe 
-
-# Test with a specific file and number of recommendations
-# python recommendations.py janedoe -f my_database.txt -n 3 
 ```
 
 This script reads `networkDB.txt` by default and prints recommended codeNames.
@@ -118,21 +118,19 @@ This script reads `networkDB.txt` by default and prints recommended codeNames.
 Make sure you have Node.js and npm installed.
 
 ```bash
-# Install dependencies (if you haven't already)
+# Install dependencies (only needed once)
 # npm install express
 
 # Start the server
 node server.js
 ```
 
-The server will start, typically listening on `http://localhost:3000`.
+The server will start (e.g., `http://localhost:3000`) and will now use `./test_network.o` for data operations.
 
 ### 5. Access the Web UI
 
 Open your web browser and navigate to `http://localhost:3000`.
 
-- You should see the list of contacts loaded from `networkDB.txt`.
-- Click on a contact to see their full details (including additional info and friends).
-- Recommendations for the selected contact will be loaded automatically.
+- The UI functions as before, but the backend now correctly delegates operations to the C++ tool and the Python script.
 
 **(This concludes the detailed overview of the Phase 3 implementation)** 
