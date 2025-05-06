@@ -40,7 +40,7 @@ TrojanBook allows users to manage contact information, establish friend connecti
 
 2.  **Install Node.js Dependencies (if needed):**
     ```bash
-    # npm install express # Only required once
+    npm install express # Only required once
     ```
 
 3.  **Run the Node.js Server:**
