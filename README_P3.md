@@ -113,7 +113,7 @@ Or you can test the command-line tool individually:
 Make sure you have Python 3 installed.
 
 ```bash
-# Test the recommendation script directly (It must be a valid **codeName** e.g. davidjohnson)
+# Test the recommendation script directly (It must be a valid codeName, e.g., davidjohnson)
 python recommendations.py davidjohnson 
 ```
 
