@@ -113,8 +113,8 @@ Or you can test the command-line tool individually:
 Make sure you have Python 3 installed.
 
 ```bash
-# Test the recommendation script directly (replace 'johndoe' with a valid codeName)
-python recommendations.py johndoe 
+# Test the recommendation script directly (It must be a valid **codeName** e.g. davidjohnson)
+python recommendations.py davidjohnson 
 ```
 
 This script reads `networkDB.txt` by default and prints recommended codeNames.
