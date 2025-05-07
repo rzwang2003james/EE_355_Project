@@ -37,7 +37,7 @@ void Date::print_date(string format) {
     else if (format == "Month D, YYYY") {
         string month_names[] = {"January", "February", "March", "April", "May", "June", 
                                "July", "August", "September", "October", "November", "December"};
-        cout << month_names[month-1] << " " << day << ", " << year;
+        cout << month_names[month-1] << " " << day << ", " << year << endl;
     }
 }
 
