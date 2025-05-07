@@ -2,6 +2,15 @@
 
 This project implements a contact management system called TrojanBook, evolving through three phases from a basic C++ application to a web-based system with recommendations.
 
+## Authors:
+
+Owen Zeng <owenzeng@usc.edu>
+
+James Wang <jwang369@usc.edu>
+
+Xiaolei Yu <xyu83571@usc.edu>
+
+
 ## Project Overview
 
 TrojanBook allows users to manage contact information, establish friend connections, and (in Phase 3) interact through a web interface with friend recommendations.
