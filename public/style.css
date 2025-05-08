@@ -1,0 +1,328 @@
+:root {
+    --background-color: #f9f9f9; /* Slightly off-white */
+    --primary-text-color: #333;
+    --secondary-text-color: #666;
+    --border-color: #e0e0e0;
+    --accent-color: #007aff; /* Apple blue */
+    --hover-bg-color: #f0f0f0;
+    --selected-bg-color: #e5f2ff;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --border-radius: 8px;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--primary-text-color);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background-color: #fff;
+    padding: 15px 30px;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex; /* Align heading and actions */
+    justify-content: space-between; /* Push actions to the right */
+    align-items: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5em;
+    font-weight: 600;
+    color: var(--primary-text-color);
+}
+
+.container {
+    display: flex;
+    flex: 1; /* Take remaining height */
+    max-width: 1200px; /* Limit overall width */
+    width: 100%;
+    margin: 20px auto; /* Center container with margin */
+    background-color: #fff;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden; /* Keep content within rounded corners */
+}
+
+.sidebar {
+    width: 280px;
+    border-right: 1px solid var(--border-color);
+    padding: 20px;
+    overflow-y: auto; /* Scroll if list is long */
+}
+
+.sidebar h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#people-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#people-list li {
+    padding: 10px 15px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+    font-size: 0.95em;
+}
+
+#people-list li:hover {
+    background-color: var(--hover-bg-color);
+}
+
+#people-list li.selected {
+    background-color: var(--selected-bg-color);
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+.content {
+    flex: 1; /* Take remaining space */
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* Scroll content if needed */
+}
+
+.details-view,
+.recommendations-view {
+    margin-bottom: 30px;
+}
+
+.details-view h2,
+.recommendations-view h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.recommendations-view h3 {
+     font-size: 1.2em;
+     border-bottom: none;
+     padding-bottom: 5px;
+}
+
+.details-view p,
+.details-view ul,
+.recommendations-view ul {
+    margin: 10px 0;
+    color: var(--secondary-text-color);
+    line-height: 1.6;
+}
+
+.details-view strong {
+    color: var(--primary-text-color);
+    font-weight: 500;
+    min-width: 100px; /* Align keys */
+    display: inline-block;
+}
+
+.details-view ul,
+#recommendations-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.details-view li,
+#recommendations-list li {
+    margin-bottom: 8px;
+    padding: 5px 0;
+}
+
+#recommendations-list li {
+    padding: 8px 12px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--primary-text-color);
+    display: flex; /* Use flex to align text and button */
+    justify-content: space-between; /* Push button to the right */
+    align-items: center; /* Vertically align items */
+    margin-bottom: 8px; /* Keep existing margin */
+}
+
+.recommend-connect-btn {
+    padding: 4px 8px; /* Smaller padding for inline button */
+    font-size: 0.8em; /* Smaller font size */
+    margin-left: 10px; /* Space between name and button */
+}
+
+.header-actions button {
+    margin-left: 10px;
+}
+
+.action-button {
+    padding: 8px 15px;
+    font-size: 0.9em;
+    font-family: var(--font-family);
+    border: 1px solid var(--border-color);
+    background-color: #fff;
+    color: var(--primary-text-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.action-button:hover {
+    background-color: var(--hover-bg-color);
+    border-color: #ccc;
+}
+
+.action-button.primary {
+    background-color: var(--accent-color);
+    color: #fff;
+    border-color: var(--accent-color);
+}
+
+.action-button.primary:hover {
+    background-color: #005bb5; /* Darker blue on hover */
+    border-color: #005bb5;
+}
+
+.action-button.danger {
+    background-color: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}
+
+.action-button.danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.details-actions {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+.details-actions button {
+    margin-right: 10px;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed; /* Stay in place */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+    display: flex; /* Use flexbox for centering */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Sit on top */
+}
+
+.modal.hidden {
+    display: none; /* Hidden by default */
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    width: 90%;
+    max-width: 500px; /* Maximum width */
+    position: relative;
+}
+
+.close-button {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+}
+
+/* Form Styles within Modal */
+#add-person-form label,
+#connect-person-modal p,
+#connect-person-modal select {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--secondary-text-color);
+    font-weight: 500;
+}
+
+#add-person-form input[type="text"],
+#add-person-form input[type="email"],
+#add-person-form textarea,
+#connect-person-modal select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-sizing: border-box; /* Prevent padding from affecting width */
+    font-family: var(--font-family);
+    font-size: 0.95em;
+}
+
+#add-person-form textarea {
+    resize: vertical; /* Allow vertical resizing */
+}
+
+#add-person-form button[type="submit"],
+#confirm-connect-btn {
+    margin-top: 10px;
+    width: 100%;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.9em;
+    margin-top: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        margin: 10px;
+        border-radius: 0;
+    }
+
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        max-height: 300px; /* Limit height when stacked */
+    }
+
+    .content {
+        padding: 20px;
+    }
+
+    header {
+        padding: 15px 20px;
+    }
+} 

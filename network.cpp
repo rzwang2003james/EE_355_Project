@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <cstring>
 #include <sstream>
+#include <map>
 
 Network::Network(){
     head = NULL;
@@ -85,74 +86,95 @@ void Network::loadDB(string filename){
         return;
     }
     
+    // Map to store friend codes read from file, key is the person's code, value is list of friend codes
+    map<string, vector<string>> friend_codes_map;
+    // Map to store pointers to created persons, key is the person's code
+    map<string, Person*> person_map;
+
     string line;
-    string f_name, l_name, bdate, phone_str, email_str;
-    int line_count = 0;
-    vector<vector<string>> all_friend_codes;
-    vector<string> friend_codes;
-    
     while (getline(infile, line)) {
-        // Skip separator lines
-        if (line.find("----") != string::npos) {
-            // Add friend codes for this person
-            all_friend_codes.push_back(friend_codes);
-            friend_codes.clear();
-            line_count = 0;
-            continue;
+        string f_name = line; // First line is fname
+        if (!getline(infile, line)) break; // Check EOF
+        string l_name = line;
+        if (!getline(infile, line)) break; // Check EOF
+        string bdate = line;
+        if (!getline(infile, line)) break; // Check EOF
+        string phone_str = line;
+        if (!getline(infile, line)) break; // Check EOF
+        string email_str = line;
+
+        Person* newPerson = new Person(f_name, l_name, bdate, email_str, phone_str);
+        string personCode = codeName(f_name, l_name);
+
+        // Read additional info (Phase 3)
+        newPerson->additional_info.clear(); // Ensure map is empty
+        while (getline(infile, line) && line != "---INFO_END---") {
+             if (line == "--------------------" || line == "===================") {
+                // Old separator or end of person before info end marker
+                infile.seekg(-(line.length() + 1), std::ios_base::cur); // Put line back
+                break;
+             }
+             size_t colon_pos = line.find(':');
+             if (colon_pos != string::npos) {
+                 string key = line.substr(0, colon_pos);
+                 string value = line.substr(colon_pos + 1);
+                 // Basic trim
+                 key.erase(0, key.find_first_not_of(" \t"));
+                 key.erase(key.find_last_not_of(" \t") + 1);
+                 value.erase(0, value.find_first_not_of(" \t"));
+                 value.erase(value.find_last_not_of(" \t") + 1);
+                 if (!key.empty()) {
+                     newPerson->add_info(key, value); // Use the method to add info
+                 }
+             } else {
+                 // If it's not key:value and not the end marker, assume it's a friend code (compatibility)
+                 friend_codes_map[personCode].push_back(line);
+             }
         }
-        
-        if (line_count == 0)
-            f_name = line;
-        else if (line_count == 1)
-            l_name = line;
-        else if (line_count == 2)
-            bdate = line;
-        else if (line_count == 3)
-            phone_str = line;
-        else if (line_count == 4) {
-            email_str = line;
-            
-            // Create new person and add to network
-            Person* newPerson = new Person(f_name, l_name, bdate, email_str, phone_str);
-            push_back(newPerson);
-            
-            // Reset for reading friend codes
-            line_count = 5;
+
+        // Read friend codes (after additional info)
+        while (getline(infile, line)) {
+            if (line == "--------------------" || line == "===================") {
+                break; // End of this person's entry
+            }
+            friend_codes_map[personCode].push_back(line);
         }
-        else if (line_count >= 5) {
-            // This line contains a friend code
-            friend_codes.push_back(line);
-        }
-        
-        line_count++;
+
+        // Add person to network and map
+        push_back(newPerson);
+        person_map[personCode] = newPerson;
     }
-    
-    // Add the last person's friend codes
-    if (!friend_codes.empty()) {
-        all_friend_codes.push_back(friend_codes);
-    }
-    
-    // Now set up friendships
-    Person* p = head;
-    int person_idx = 0;
-    while (p != NULL && person_idx < all_friend_codes.size()) {
-        for (string code : all_friend_codes[person_idx]) {
-            // Find the friend with this code
-            Person* temp = head;
-            while (temp != NULL) {
-                if (codeName(temp->f_name, temp->l_name) == code) {
-                    p->makeFriend(temp);
-                    break;
+
+    infile.close();
+
+    // Now set up friendships using the maps
+    for (map<string, vector<string>>::iterator it = friend_codes_map.begin(); it != friend_codes_map.end(); ++it) {
+        string personCode = it->first;
+        vector<string>& codes_of_friends = it->second;
+
+        if (person_map.count(personCode)) { // Check if person exists in our map
+            Person* current_person = person_map[personCode];
+            for (size_t i = 0; i < codes_of_friends.size(); ++i) {
+                string friendCode = codes_of_friends[i];
+                if (person_map.count(friendCode)) { // Check if friend exists
+                    Person* friend_person = person_map[friendCode];
+                    // Avoid adding self as friend or duplicate friends (optional check)
+                    bool already_friend = false;
+                    for(size_t j=0; j < current_person->myfriends.size(); ++j) {
+                       if (current_person->myfriends[j] == friend_person) {
+                          already_friend = true;
+                          break;
+                       }
+                    }
+                    if (current_person != friend_person && !already_friend) {
+                        current_person->makeFriend(friend_person);
+                    }
+                } else {
+                    cerr << "Warning: Friend code '" << friendCode << "' for person '" << personCode << "' not found in network." << endl;
                 }
-                temp = temp->next;
             }
         }
-        
-        p = p->next;
-        person_idx++;
     }
-    
-    infile.close();
 }
 
 void Network::saveDB(string filename){
@@ -166,22 +188,27 @@ void Network::saveDB(string filename){
     while (current != NULL) {
         outfile << current->f_name << endl;
         outfile << current->l_name << endl;
-        
-        // Use the get_date method to get the formatted date
         outfile << current->birthdate->get_date("MM/DD/YYYY") << endl;
-        
-        // Output phone and email
         outfile << current->phone->get_contact("full") << endl;
         outfile << current->email->get_contact("full") << endl;
         
+        // Write Additional Info (Phase 3)
+        const map<string, string>& info = current->get_all_info();
+        for (map<string, string>::const_iterator it = info.begin(); it != info.end(); ++it) {
+            outfile << it->first << ":" << it->second << endl;
+        }
+        outfile << "---INFO_END---" << endl; // Marker for end of additional info
+
         // Write friend codes
         for (size_t i = 0; i < current->myfriends.size(); i++) {
             string code = codeName(current->myfriends[i]->f_name, current->myfriends[i]->l_name);
             outfile << code << endl;
         }
         
-        if (current->next != NULL)
+        // Separator
+        if (current->next != NULL) {
             outfile << "--------------------" << endl;
+        }
         
         current = current->next;
     }
@@ -468,5 +495,110 @@ void Network::showMenu(){
         std::getline (std::cin, temp);
         cout << "\033[2J\033[1;1H";
     }
+}
+
+// Add the implementation for searchByCodeName
+Person* Network::searchByCodeName(string codeName) {
+    Person* current = head;
+    while (current != NULL) {
+        if (::codeName(current->f_name, current->l_name) == codeName) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL; 
+}
+
+// Implementation for printAllSummaries
+void Network::printAllSummaries() {
+    Person* current = head;
+    while(current != nullptr) {
+        cout << codeName(current->f_name, current->l_name) << ":"
+             << current->f_name << ":" 
+             << current->l_name << endl;
+        current = current->next;
+    }
+}
+
+// Implementation for removeByCodeName
+bool Network::removeByCodeName(string codeName) {
+    Person* target = searchByCodeName(codeName);
+    if (!target) {
+        return false; // Person not found
+    }
+
+    // Step 1: Remove target from all other people's friend lists
+    Person* current = head;
+    while (current != nullptr) {
+        if (current != target) { // Don't try to remove from self
+             // Iterate through current person's friends
+             vector<Person*>::iterator it = current->myfriends.begin();
+             while (it != current->myfriends.end()) {
+                 if (*it == target) {
+                     it = current->myfriends.erase(it); // Erase and update iterator
+                 } else {
+                     ++it;
+                 }
+             }
+        }
+        current = current->next;
+    }
+
+    // Step 2: Unlink target from the doubly linked list
+    if (target->prev) {
+        target->prev->next = target->next;
+    } else {
+        head = target->next; // Target was head
+    }
+    if (target->next) {
+        target->next->prev = target->prev;
+    } else {
+        tail = target->prev; // Target was tail
+    }
+
+    // Step 3: Delete the target object
+    delete target;
+    count--;
+    return true;
+}
+
+// Implementation for the public printPersonDetailsParsable method
+void Network::printPersonDetailsParsable(string codeName) {
+    Person* p = searchByCodeName(codeName);
+    if (p) {
+        print_details_parsable_helper(p);
+    } else {
+        // Error handled by caller in main, maybe print info here?
+        // cerr << "INFO: Person with codename '" << codeName << "' not found." << endl;
+         // No output needed here, main handles not found.
+    }
+}
+
+// Implementation for the private print_details_parsable_helper method
+// (Moved from test_network.cpp)
+void Network::print_details_parsable_helper(Person* p) {
+     if (!p) return;
+     // Access private members directly because Network is a friend
+    cout << "fname:" << p->f_name << endl;
+    cout << "lname:" << p->l_name << endl;
+    cout << "bdate:" << p->birthdate->get_date("MM/DD/YYYY") << endl;
+    if (p->phone) cout << "phone:" << p->phone->get_contact("full") << endl; 
+    else cout << "phone:" << endl;
+    if (p->email) cout << "email:" << p->email->get_contact("full") << endl;
+    else cout << "email:" << endl;
+
+    const map<string, string>& info = p->get_all_info(); // Use public getter for info map
+    for (map<string, string>::const_iterator it = info.begin(); it != info.end(); ++it) {
+        cout << "info_" << it->first << ":" << it->second << endl;
+    }
+
+    // Access private myfriends vector directly
+    for (size_t i = 0; i < p->myfriends.size(); ++i) {
+        if (p->myfriends[i]) { 
+           // Access friend's private names directly
+           cout << "friend:" << ::codeName(p->myfriends[i]->f_name, p->myfriends[i]->l_name) << endl;
+        }
+    }
+    cout << "---DETAILS_END---" << endl;
 }
 

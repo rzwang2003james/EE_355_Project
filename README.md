@@ -1,178 +1,74 @@
-# TrojanBook - Contact Management System
+# TrojanBook - Contact Management & Social Network
 
-## Overview
-TrojanBook is a contact management system that resembles a simple social network. The project is implemented in C++ and includes features for managing contacts, creating connections between people, and storing/retrieving data.
+This project implements a contact management system called TrojanBook, evolving through three phases from a basic C++ application to a web-based system with recommendations.
 
-## Project Phases
+## Authors:
 
-### Phase 1 Features
-- **Contact Management**: Ability to add, remove, and search for contacts
-- **Data Storage**: Load and save contact data from/to files
-- **Object-Oriented Design**: Implementation of classes for Date, Contact (Email, Phone), Person, and Network
-- **User Interface**: Interactive menu system for managing the network
+Owen Zeng <owenzeng@usc.edu>
 
-### Phase 2 Enhancements
-- **Friend Connections**: Added ability to connect people as friends
-- **Friend Display**: Enhanced person display to show their connections
-- **Sorted Friend List**: Implementation of a function to display friends in alphabetical order
-- **Data Persistence**: Updated file I/O to store and load friendship information
-- **Unique ID System**: Added codeName function to generate unique IDs for people
+James Wang <jwang369@usc.edu>
 
-## Classes
+Xiaolei Yu <xyu83571@usc.edu>
 
-### Contact Class (contact.h, contact.cpp)
-- Abstract base class with two derived classes: Email and Phone
-- Implements virtual methods for handling contact information
-- Email class manages email addresses
-- Phone class handles phone numbers with proper formatting (XXX-XXX-XXXX)
 
-### Date Class (date.h, date.cpp)
-- Handles date information with different format options
-- Implements parsing of M/D/YYYY format
-- Provides date comparison operators
+## Project Overview
 
-### Person Class (person.h, person.cpp)
-- Stores personal information: first name, last name, birthdate, email, and phone
-- Maintains a vector of friends (added in Phase 2)
-- Provides methods for creating and managing friendships
-- Implements printing functions for person details and friend lists
+TrojanBook allows users to manage contact information, establish friend connections, and (in Phase 3) interact through a web interface with friend recommendations.
 
-### Network Class (network.h, network.cpp)
-- Manages a doubly linked list of Person objects
-- Implements load and save functionality for database files
-- Provides search methods to find people by name
-- Includes methods for adding and removing people
-- Features an interactive menu interface
-- Implements "Connect" functionality for creating friendships (Phase 2)
+## Phases
 
-### Misc Functions (misc.h, misc.cpp)
-- Utility functions used across the application
-- printMe: Displays the application banner
-- codeName: Generates unique IDs by concatenating names, removing spaces, and converting to lowercase
+*   **Phase 1: Core C++ Implementation**
+    *   Focused on fundamental C++ classes (`Contact`, `Date`, `Person`, `Network`) for managing contacts using a doubly linked list.
+    *   Implemented file I/O (`networkDB.txt`) for persistence.
+    *   Provided a basic interactive text menu.
+    *   [Details in README_P1.md](./README_P1.md)
 
-## Menu Options
-1. **Save network database**: Save the current network to a file
-2. **Load network database**: Load a network from a file
-3. **Add a new person**: Add a person to the network
-4. **Remove a person**: Remove a person from the network
-5. **Print people with last name**: Search for people by last name
-6. **Connect**: Make a connection between two people (added in Phase 2)
-7. **Display sorted friends**: Show the friends of a person in a sorted order (added in Phase 2)
+*   **Phase 2: Friend Connections**
+    *   Enhanced the C++ application to support friend relationships between `Person` objects.
+    *   Introduced a unique `codeName` identifier for people.
+    *   Updated file I/O and the `Person` class to store/load friend connections.
+    *   Added menu options for connecting people and viewing sorted friend lists.
+    *   [Details in README_P2.md](./README_P2.md)
 
-## Friend Functionality
-- Each Person object maintains a vector of pointers to their friends
-- Friends are displayed in the person's information output
-- The `print_friends` method displays a sorted list of a person's friends
-- Friend connections are bidirectional (if A is friends with B, then B is also friends with A)
-- Friend relationships are persisted when saving and loading the network
+*   **Phase 3: Web Interface & Recommendations**
+    *   Extended the C++ `Person` class to store additional key-value information (`std::map`).
+    *   Refactored the C++ application to be controlled via command-line arguments instead of an interactive menu.
+    *   Developed a Python script (`recommendations.py`) for content-based friend recommendations.
+    *   Built a Node.js/Express web application with a dynamic frontend (HTML/CSS/JS).
+    *   The Node.js backend acts as an interface, calling the compiled C++ executable for data operations and the Python script for recommendations.
+    *   [Details in README_P3.md](./README_P3.md)
 
-## Compilation Instructions
-```bash
-# Compile the Network Test
-g++ -o test_network date.cpp contact.cpp person.cpp network.cpp misc.cpp test_network.cpp
+## How to Run (Phase 3 - Final Version)
 
-# Compile the Person Equality Test
-g++ -o test_person date.cpp contact.cpp person.cpp test_person_eq.cpp
-```
+1.  **Compile C++ Code:**
+    ```bash
+    make clean 
+    make test_network
+    ```
+    This creates the `./test_network.o` executable used by the server.
 
-## Testing Phase 2 Features
+2.  **Install Node.js Dependencies (if needed):**
+    ```bash
+    npm install express # Only required once
+    ```
 
-To test the Phase 2 features of the TrojanBook application, you have two options:
+3.  **Run the Node.js Server:**
+    ```bash
+    node server.js
+    ```
 
-### Option 1: Automated Test Program
+4.  **Access Web UI:**
+    *   Open your browser and navigate to `http://localhost:3000` (or the port specified by the server output).
 
-We've included a special test program that demonstrates all Phase 2 features:
 
-1. **Compile the program**:
-   ```bash
-   make test_phase2
-   ```
-   or simply `make` to build all executables.
+## File Structure Overview
 
-2. **Run the test program**:
-   ```bash
-   ./test_phase2.o
-   ```
-
-   This program will:
-   - Create a network with 5 people
-   - Make friend connections between them
-   - Display a person's information with their friends
-   - Show the sorted friends list
-   - Save the network to a file
-   - Load the network from the file
-   - Verify that friend relationships were preserved
-
-   The output will clearly show each step of the testing process and verify that all Phase 2 functionality works correctly.
-
-### Option 2: Interactive Testing
-
-You can also test the features interactively through the menu system:
-
-1. **Compile the project**:
-   ```bash
-   make
-   ```
-   This will create the executable "test_network.o"
-
-2. **Run the application**:
-   ```bash
-   ./test_network.o
-   ```
-
-3. **Testing Friend Connections**:
-   
-   a. First, add some people to the network (option 3) or load an existing database (option 2).
-   
-   b. To connect two people as friends, select option 6 from the main menu.
-   
-   c. Enter the first and last name of the first person.
-   
-   d. Enter the first and last name of the second person.
-   
-   e. The application will display both people's information and then make them friends with each other.
-   
-   f. After creating the connection, the application will automatically display the sorted friends list for both people.
-
-4. **Testing Sorted Friends Display**:
-   
-   a. To view a person's friends in a sorted order at any time, select option 7 from the main menu.
-   
-   b. Enter the first and last name of the person whose friends you want to view.
-   
-   c. The application will display the person's friends sorted by their code names according to the sorting criteria specified in Part 5.
-
-5. **Testing Data Persistence**:
-   
-   a. After creating some friend connections, save the network to a file (option 1).
-   
-   b. Exit the application and run it again.
-   
-   c. Load the saved database file (option 2).
-   
-   d. View a person's information (option 5 or 7) to verify that the friend connections have been preserved.
-
-6. **Expected Outputs**:
-   
-   - When using option 6 (Connect), after connecting two people, you should see the information of both people and then the sorted friends list for each.
-   
-   - When using option 7 (Display sorted friends), you should see the person's name followed by a list of their friends sorted by code name.
-   
-   - When viewing a person's information after making connections, the friends should be listed with their code and name in parentheses.
-
-## File Format
-The network database files store person information in the following format:
-- First name
-- Last name
-- Birthdate (MM/DD/YYYY)
-- Phone information
-- Email information
-- Friend codes (added in Phase 2)
-- Separator line (--------------------) between people
-
-## Future Enhancements
-- Enhanced search capabilities
-- Group management
-- Profile pictures
-- Message exchange system
-- Privacy settings 
+*   **`.cpp` / `.h` files:** C++ source and header files for classes (`Person`, `Network`, `Contact`, `Date`, `misc`).
+*   **`test_*.cpp`:** C++ test files. `test_network.cpp` contains the `main` function for the command-line executable.
+*   **`networkDB.txt`:** The primary data file used by C++, Python, and Node.js.
+*   **`recommendations.py`:** Python script for generating friend recommendations.
+*   **`server.js`:** Node.js backend server (using Express).
+*   **`public/`:** Directory containing frontend files (`index.html`, `style.css`, `script.js`).
+*   **`package.json` / `package-lock.json`:** Node.js project files.
+*   **`Makefile`:** Used to compile the C++ code.
+*   **`README_P*.md`:** Detailed documentation for each project phase.

@@ -3,16 +3,206 @@ Louis-Dreyfus
 1/13/1961
 (Gmail) something@email.com
 (Office) 310-291-7482
+---INFO_END---
+trumanburbank
 --------------------
 Martin
 Van Nostrand
-07/24/1949
+7/24/1949
 (Yahoo) myemail@yahoo.com
 (Home) 2244325809
+---INFO_END---
 --------------------
 Truman
 Burbank
 1/17/1962
 (Official) document@info.edu
 (Work) 2135179989
+---INFO_END---
+juliascarlettelizabethlouis-dreyfus
 --------------------
+Emily
+Martinez
+5/13/1991
+(479) 479)-246-5877
+(mily.martinez@example.com) mily.martinez@example.com
+college:Stanford
+major:Electrical Engineering
+state:TX
+---INFO_END---
+emilyjohnson
+--------------------
+Robert
+Williams
+11/8/1983
+(868) 868)-279-9397
+(obert.williams@example.com) obert.williams@example.com
+college:UCLA
+major:Computer Science
+state:CA
+---INFO_END---
+--------------------
+David
+Johnson
+12/17/1997
+(702) 702)-522-8115
+(avid.johnson@example.com) avid.johnson@example.com
+college:USC
+major:Computer Science
+state:FL
+---INFO_END---
+sarahgarcia
+--------------------
+Sarah
+Garcia
+7/15/1993
+(754) 754)-795-8412
+(arah.garcia@example.com) arah.garcia@example.com
+college:Stanford
+major:Computer Science
+state:CA
+---INFO_END---
+davidjohnson
+--------------------
+Michael
+Johnson
+1/7/1996
+(621) 621)-851-5197
+(ichael.johnson@example.com) ichael.johnson@example.com
+college:USC
+major:Computer Science
+state:IL
+---INFO_END---
+--------------------
+William
+Jones
+9/27/1985
+(389) 389)-347-7552
+(illiam.jones@example.com) illiam.jones@example.com
+college:Berkeley
+major:Computer Science
+state:TX
+---INFO_END---
+--------------------
+Sarah
+Rodriguez
+7/24/1984
+(754) 754)-674-3814
+(arah.rodriguez@example.com) arah.rodriguez@example.com
+college:Stanford
+major:Mechanical Engineering
+state:CA
+---INFO_END---
+--------------------
+Michael
+Garcia
+4/28/1989
+(686) 686)-618-2422
+(ichael.garcia@example.com) ichael.garcia@example.com
+college:Caltech
+major:Biology
+state:FL
+---INFO_END---
+davidgarcia
+williammiller
+--------------------
+Jennifer
+Smith
+6/24/1999
+(125) 125)-319-8808
+(ennifer.smith@example.com) ennifer.smith@example.com
+college:Caltech
+major:Biology
+state:IL
+---INFO_END---
+--------------------
+William
+Miller
+5/27/1981
+(234) 234)-123-9843
+(illiam.miller@example.com) illiam.miller@example.com
+college:UCLA
+major:Computer Science
+state:CA
+---INFO_END---
+michaelgarcia
+--------------------
+Elizabeth
+Johnson
+12/1/1992
+(499) 499)-535-7069
+(lizabeth.johnson@example.com) lizabeth.johnson@example.com
+college:UCLA
+major:Biology
+state:NY
+---INFO_END---
+--------------------
+Jennifer
+Williams
+1/22/1983
+(715) 715)-673-4788
+(ennifer.williams@example.com) ennifer.williams@example.com
+college:Berkeley
+major:Business
+state:CA
+---INFO_END---
+--------------------
+Jennifer
+Garcia
+5/15/1984
+(497) 497)-344-4522
+(ennifer.garcia@example.com) ennifer.garcia@example.com
+college:Caltech
+major:Biology
+state:NY
+---INFO_END---
+--------------------
+David
+Garcia
+11/27/1998
+(282) 282)-731-2587
+(avid.garcia@example.com) avid.garcia@example.com
+college:Berkeley
+major:Computer Science
+state:TX
+---INFO_END---
+michaelgarcia
+--------------------
+Emily
+Johnson
+10/19/1995
+(246) 246)-929-8511
+(mily.johnson@example.com) mily.johnson@example.com
+college:Stanford
+major:Biology
+state:TX
+---INFO_END---
+emilymartinez
+--------------------
+Michael
+Miller
+6/2/1991
+(248) 248)-556-8195
+(ichael.miller@example.com) ichael.miller@example.com
+college:USC
+major:Psychology
+state:NY
+---INFO_END---
+--------------------
+Jane
+Jones
+8/25/1990
+(668) 668)-271-8254
+(ane.jones@example.com) ane.jones@example.com
+college:Caltech
+major:Biology
+state:CA
+---INFO_END---
+--------------------
+Owen
+Zeng
+10/14/2003
+(888888888) 888888888
+(wenzeng@usc.edu) wenzeng@usc.edu
+major:ECE
+---INFO_END---
